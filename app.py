@@ -16,7 +16,8 @@ def create_app():
     # Configuración Swagger
     app.config['SWAGGER'] = {
         'title': 'Carrito de Compras API',
-        'uiversion': 3
+        'uiversion': 3,
+        'validatorUrl': ''  # Evita el error "Uncaught ReferenceError: None is not defined"
     }
     
     # Inicializar extensiones
@@ -57,6 +58,11 @@ def create_app():
     @app.route('/')
     def serve_frontend():
         return app.send_static_file('index.html')
+
+    # Ignorar silenciosamente la petición del favicon para que no tire error 404
+    @app.route('/favicon.ico')
+    def favicon():
+        return '', 204
 
     return app
 

@@ -4,8 +4,15 @@ from models import Service, CartItem, Order, OrderItem
 
 api_bp = Blueprint('api_bp', __name__)
 
-@api_bp.route('/', methods=['GET'])
-def index():
+@api_bp.route('/api/csv', methods=['GET'])
+def index_csv():
+    """
+    Lista de servicios disponibles en formato CSV.
+    ---
+    responses:
+      200:
+        description: Devuelve el catálogo en formato texto plano (CSV).
+    """
     services = Service.query.all()
     csv_lines = ["id,servicio,precio"]
     for s in services:
@@ -16,11 +23,40 @@ def index():
 
 @api_bp.route('/api/services', methods=['GET'])
 def get_services():
+    """
+    Retorna el catálogo completo de servicios en formato JSON.
+    ---
+    responses:
+      200:
+        description: Catálogo de servicios.
+    """
     services = Service.query.all()
     return jsonify([s.to_dict() for s in services]), 200
 
 @api_bp.route('/api/services', methods=['POST'])
 def add_service():
+    """
+    Permite agregar un nuevo servicio al catálogo.
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            servicio:
+              type: string
+              example: "Cambio de disco"
+            precio:
+              type: integer
+              example: 25000
+    responses:
+      201:
+        description: Servicio agregado correctamente.
+      400:
+        description: Error en los parámetros enviados (ej. precio negativo).
+    """
     data = request.get_json()
     
     if not data or 'servicio' not in data or 'precio' not in data:
@@ -49,6 +85,13 @@ def add_service():
 
 @api_bp.route('/api/cart', methods=['GET'])
 def get_cart():
+    """
+    Retorna los items actuales en el carrito y el total calculado.
+    ---
+    responses:
+      200:
+        description: Estado actual del carrito.
+    """
     cart_items = CartItem.query.all()
     items_response = []
     total = 0
@@ -71,6 +114,30 @@ def get_cart():
 
 @api_bp.route('/api/cart', methods=['POST'])
 def add_to_cart():
+    """
+    Agrega un servicio al carrito o incrementa su cantidad.
+    ---
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            service_id:
+              type: integer
+              example: 1
+            cantidad:
+              type: integer
+              example: 1
+    responses:
+      201:
+        description: Añadido al carrito con éxito.
+      400:
+        description: Faltan datos o cantidad es inválida.
+      404:
+        description: Servicio no encontrado.
+    """
     data = request.get_json()
     
     if not data or 'service_id' not in data or 'cantidad' not in data:
@@ -103,6 +170,31 @@ def add_to_cart():
 
 @api_bp.route('/api/cart/<int:service_id>', methods=['PUT'])
 def update_cart_item(service_id):
+    """
+    Actualiza la cantidad exacta de un servicio. Si es 0, lo elimina.
+    ---
+    parameters:
+      - in: path
+        name: service_id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            cantidad:
+              type: integer
+              example: 5
+    responses:
+      200:
+        description: Cantidad actualizada exitosamente.
+      400:
+        description: Cantidad inválida.
+      404:
+        description: Servicio no encontrado en el carrito.
+    """
     data = request.get_json()
     if not data or 'cantidad' not in data:
         return jsonify({"error": "Faltan datos requeridos (cantidad)"}), 400
@@ -126,6 +218,20 @@ def update_cart_item(service_id):
 
 @api_bp.route('/api/cart/<int:service_id>', methods=['DELETE'])
 def remove_from_cart(service_id):
+    """
+    Elimina un servicio específico del carrito.
+    ---
+    parameters:
+      - in: path
+        name: service_id
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminado correctamente.
+      404:
+        description: No encontrado.
+    """
     cart_item = CartItem.query.filter_by(service_id=service_id).first()
     if cart_item:
         db.session.delete(cart_item)
@@ -136,12 +242,28 @@ def remove_from_cart(service_id):
 
 @api_bp.route('/api/cart', methods=['DELETE'])
 def clear_cart():
+    """
+    Vacia el carrito por completo.
+    ---
+    responses:
+      200:
+        description: Carrito vaciado con éxito.
+    """
     CartItem.query.delete()
     db.session.commit()
     return jsonify({"message": "Carrito vaciado por completo"}), 200
 
 @api_bp.route('/api/checkout', methods=['POST'])
 def checkout():
+    """
+    Procesa el carrito actual, genera una orden de compra y vacía el carrito.
+    ---
+    responses:
+      201:
+        description: Orden generada exitosamente.
+      400:
+        description: El carrito está vacío.
+    """
     cart_items = CartItem.query.all()
     if not cart_items:
         return jsonify({"error": "El carrito está vacío, no se puede generar la orden"}), 400
@@ -193,6 +315,13 @@ def checkout():
 
 @api_bp.route('/api/orders', methods=['GET'])
 def get_orders():
+    """
+    Retorna el historial de órdenes de compra.
+    ---
+    responses:
+      200:
+        description: Historial de órdenes.
+    """
     orders = Order.query.all()
     orders_data = []
     for o in orders:

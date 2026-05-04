@@ -38,7 +38,7 @@ def clean_db(app):
         db.session.commit()
 
 def test_index_csv(client):
-    response = client.get('/')
+    response = client.get('/api/csv')
     assert response.status_code == 200
     assert "1,Cambio de Pasta térmica y Mantenimiento PC Desktop,29800" in response.data.decode('utf-8')
 

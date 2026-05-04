@@ -5,7 +5,8 @@ from routes import api_bp
 from models import Service
 
 def create_app():
-    app = Flask(__name__)
+    # Configuramos Flask para servir los archivos estáticos desde /frontend
+    app = Flask(__name__, static_folder='frontend', static_url_path='')
     
     # Configuración Base de Datos SQLite
     basedir = os.path.abspath(os.path.dirname(__file__))
@@ -51,6 +52,11 @@ def create_app():
             for s in initial_services:
                 db.session.add(Service(servicio=s['servicio'], precio=s['precio']))
             db.session.commit()
+
+    # Ruta raíz que sirve el Frontend SPA automáticamente
+    @app.route('/')
+    def serve_frontend():
+        return app.send_static_file('index.html')
 
     return app
 

@@ -1,92 +1,90 @@
-# API Carrito de Compras - SPA Backend
+# Aplicación Web SPA - Carrito de Compras de Servicios Técnicos
 
-Este proyecto es la **Etapa 1** del desarrollo de una aplicación web (SPA) inspirada en un carrito de compras estilo "Coffee Cart", enfocada en servicios técnicos. Consiste en una robusta API RESTful construida con **Flask** (Python) que maneja toda la lógica del negocio, la gestión del carrito en memoria y un simulador de checkout.
+Este repositorio contiene el proyecto finalizado de ambas etapas (Etapa 1 y Etapa 2) para el Desarrollo de una Aplicación Web Single Page Application (SPA), inspirada en "Coffee Cart".
 
-## 🚀 Características Principales
+## 🏗️ Arquitectura del Proyecto (Desacoplada)
 
-*   **Catálogo de Servicios**: Listado de 15 servicios preconfigurados (reparación de PC, consolas, celulares, etc.).
-*   **Gestión de Servicios**: Endpoint `POST` para agregar dinámicamente nuevos servicios con validación estricta de datos.
-*   **Carrito Avanzado**: 
-    *   Acumulación de cantidades al agregar un servicio repetido.
-    *   Ajuste exacto de cantidades en un ítem (`PUT`).
-    *   Eliminación individual o vaciado completo del carrito (`DELETE`).
-*   **Checkout Simulator**: Generación automática de órdenes de compra, cálculos de totales y limpieza de sesión post-compra.
-*   **Documentación Interactiva**: Integración nativa con **Flasgger (Swagger UI)**.
-*   **Testing**: Alta cobertura de pruebas unitarias implementadas con `pytest`.
+El proyecto está diseñado siguiendo una **arquitectura cliente-servidor completamente desacoplada**. Esto significa que el backend (la API) y el frontend (la interfaz de usuario) operan de forma independiente, comunicándose exclusivamente a través de peticiones HTTP (REST). 
 
-## 🛠️ Tecnologías Utilizadas
-*   Python 3.x
-*   Flask & Flask-CORS
-*   Flasgger (OpenAPI/Swagger)
-*   Pytest (Testing)
+Esta decisión arquitectónica permite:
+1. Desplegar el frontend y el backend en servidores distintos.
+2. Hacer modificaciones en la interfaz sin afectar la lógica de negocio ni la base de datos.
+3. Evaluar la Etapa 1 (solo backend) de forma aislada a través de herramientas como Swagger.
+
+### Estructura de Carpetas
+
+```
+API-carrito-flask/
+├── app.py                # Backend: Servidor Flask y lógica RESTful
+├── carrito.db            # Base de Datos: SQLite autogenerada por SQLAlchemy
+├── requirements.txt      # Dependencias del backend
+├── e2e_test.py           # Testing E2E con Playwright
+│
+└── frontend/             # Frontend (SPA)
+    ├── index.html        # Estructura principal
+    ├── styles.css        # Diseño UI (estilo oscuro de software ágil)
+    └── app.js            # Lógica JS Vanilla (Fetch API a http://127.0.0.1:5000)
+```
+
+## 🛠️ Tecnologías Implementadas
+
+### Backend (Etapa 1)
+*   **Python 3 / Flask:** Framework ligero para construir las APIs.
+*   **Flask-SQLAlchemy (SQLite):** ORM utilizado para persistencia real de datos (Servicios, Carrito y Órdenes).
+*   **Flasgger:** Documentación interactiva autogenerada de la API (Swagger UI).
+*   **Flask-CORS:** Habilita peticiones cruzadas desde el frontend.
+
+### Frontend (Etapa 2)
+*   **HTML5 & CSS3 (Vainilla):** Interfaz limpia, oscura ("Dark Mode") y ágil. Sin dependencias externas pesadas.
+*   **JavaScript (Vainilla):** Manejo asíncrono usando `Fetch API` para sincronizar el estado del carrito dinámicamente con el servidor.
+
+### Testing
+*   **Playwright (pytest-playwright):** Herramienta para realizar pruebas *End-to-End* simulando un navegador real manipulando la SPA.
 
 ---
 
-## 📖 Instrucciones de Uso (Paso a Paso)
+## 📖 Instrucciones para Ejecución Local
 
-Esta guía te ayudará a clonar, configurar, ejecutar y probar la API en tu entorno local. Ideal para evaluación o despliegue.
+Dado que la arquitectura es desacoplada, el backend y el frontend se ejecutan/sirven por separado.
 
-### 1. Clonar el repositorio
-Abre tu terminal y ejecuta:
-```bash
-git clone https://github.com/arecofix/API-carrito-Flask.git
-cd API-carrito-Flask
-```
+### 1. Iniciar el Backend (Servidor Flask)
 
-### 2. Configurar el Entorno Virtual (Recomendado)
-Para evitar conflictos de dependencias, crea y activa un entorno virtual:
+1. Crea y activa tu entorno virtual:
+   ```bash
+   python -m venv venv
+   .\venv\Scripts\activate   # En Windows
+   source venv/bin/activate  # En Linux/Mac
+   ```
+2. Instala las dependencias:
+   ```bash
+   pip install -r requirements.txt
+   pip install flask-sqlalchemy playwright pytest-playwright
+   ```
+3. Ejecuta el servidor de Flask:
+   ```bash
+   python app.py
+   ```
+   *El servidor iniciará en `http://127.0.0.1:5000`. La base de datos SQLite (`carrito.db`) se generará automáticamente con el catálogo precargado. Puedes ver el Swagger en `http://127.0.0.1:5000/apidocs`.*
 
-**En Windows:**
-```bash
-python -m venv venv
-.\venv\Scripts\activate
-```
+### 2. Iniciar el Frontend (SPA)
 
-**En Linux / Mac:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+Al no usar Node.js/Frameworks pesados, puedes iniciar el frontend de la manera más sencilla posible:
+1. Navega a la carpeta `/frontend`.
+2. Simplemente haz doble clic en el archivo `index.html` para abrirlo en tu navegador (`file:///.../frontend/index.html`).
+3. O si utilizas VS Code, instala la extensión "Live Server" y dale a "Go Live" en `index.html`.
 
-### 3. Instalar Dependencias
-Una vez activo el entorno virtual, instala los paquetes requeridos desde la raíz del proyecto:
-```bash
-pip install -r requirements.txt
-```
+*Nota: La interfaz comenzará a realizar llamadas `fetch` a `http://127.0.0.1:5000`. Asegúrate de que el backend esté corriendo simultáneamente.*
 
-### 4. Ejecutar las Pruebas Unitarias (Tests)
-Para validar que toda la lógica de negocio y validaciones matemáticas (precios, inserciones, borrados) funcionan correctamente de forma automática:
-```bash
-python -m pytest
-```
-> *Deberías ver que los 11 tests pasan con 100% de éxito en verde.*
+### 3. Ejecutar Pruebas E2E (Playwright)
 
-### 5. Iniciar el Servidor
-Para levantar la API localmente en modo desarrollo, ejecuta:
-```bash
-python app.py
-```
-El servidor se iniciará y estará escuchando peticiones en `http://127.0.0.1:5000`.
+Para validar el flujo completo automatizado en la UI:
 
-### 6. Probar la API (Swagger UI)
-No necesitas aplicaciones externas de terceros (como Postman) para probar el funcionamiento. Accede a la documentación interactiva abriendo la siguiente URL en tu navegador:
-
-👉 **[http://127.0.0.1:5000/apidocs](http://127.0.0.1:5000/apidocs)**
-
-Desde allí podrás desplegar cada endpoint (ej: `GET /api/cart`), hacer clic en el botón blanco **"Try it out"**, luego en **"Execute"**, y visualizar las respuestas JSON reales del servidor en la parte inferior.
-
----
-
-## 🔗 Estructura de Endpoints Principales
-
-| Método | Endpoint | Descripción |
-| :--- | :--- | :--- |
-| `GET` | `/api/services` | Lista todos los servicios técnicos disponibles. |
-| `POST` | `/api/services` | Crea un nuevo servicio (valida que el precio no sea negativo ni el string vacío). |
-| `GET` | `/api/cart` | Devuelve el estado actual del carrito y el subtotal calculado general. |
-| `POST` | `/api/cart` | Agrega un servicio al carrito o incrementa la cantidad si ya existe. |
-| `PUT` | `/api/cart/{service_id}` | Actualiza a una cantidad exacta. Si se envía cantidad 0, lo elimina. |
-| `DELETE` | `/api/cart/{service_id}` | Elimina el servicio especificado del carrito. |
-| `DELETE` | `/api/cart` | Vacía todo el contenido del carrito. |
-| `POST` | `/api/checkout` | Genera una orden de compra, guarda el registro y limpia el carrito. |
-| `GET` | `/api/orders` | Muestra el historial de todas las órdenes de compras finalizadas. |
+1. Asegúrate de tener instalado Playwright y sus navegadores base:
+   ```bash
+   playwright install chromium
+   ```
+2. Ejecuta el script de pruebas en una terminal separada:
+   ```bash
+   pytest e2e_test.py
+   ```
+   *Playwright levantará un navegador invisible, abrirá el frontend, agregará un servicio, validará la suma del total calculada por el backend y limpiará el carrito.*

@@ -1,9 +1,12 @@
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 from flasgger import Swagger
+from flask_sqlalchemy import SQLAlchemy
+import os
 
 app = Flask(__name__)
 CORS(app)
+
 # Configuración básica de Swagger
 app.config['SWAGGER'] = {
     'title': 'Carrito de Compras API',
@@ -11,105 +14,95 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 
-# --- Datos en memoria (Persistencia) ---
+# Configuración Base de Datos SQLite
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'carrito.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Catálogo de servicios técnicos ampliados
-services_catalog = [
-    {"id": 1, "servicio": "Cambio de Pasta térmica y Mantenimiento PC Desktop", "precio": 29800},
-    {"id": 2, "servicio": "Instalación de Sistema Operativo (Windows/Linux) con Backup", "precio": 15000},
-    {"id": 3, "servicio": "Limpieza profunda de hardware (PC Desktop)", "precio": 22500},
-    {"id": 4, "servicio": "Diagnóstico de falla de encendido PC/Notebook", "precio": 12000},
-    {"id": 5, "servicio": "Desbloqueo y flasheo de Netbooks del Gobierno", "precio": 18000},
-    {"id": 6, "servicio": "Cambio de pantalla Notebook / Netbook", "precio": 35000},
-    {"id": 7, "servicio": "Mantenimiento preventivo Consolas (PS4, PS5, Xbox One/Series)", "precio": 32000},
-    {"id": 8, "servicio": "Reparación de Joystick (Drift, Botones, Batería)", "precio": 14000},
-    {"id": 9, "servicio": "Reballing de placa de video / Consolas", "precio": 55000},
-    {"id": 10, "servicio": "Cambio de módulo / Pantalla Celular", "precio": 45000},
-    {"id": 11, "servicio": "Cambio de pin de carga (Celulares y Tablets)", "precio": 16000},
-    {"id": 12, "servicio": "Cambio de batería celular", "precio": 20000},
-    {"id": 13, "servicio": "Armado de PC Gamer a medida (solo mano de obra)", "precio": 40000},
-    {"id": 14, "servicio": "Recuperación de datos de disco dañado (Nivel 1)", "precio": 50000},
-    {"id": 15, "servicio": "Optimización de sistema y eliminación de virus", "precio": 13500}
-]
-service_id_counter = 16
+db = SQLAlchemy(app)
 
-# Carrito de compras
-# Formato: { service_id: cantidad }
-cart = {}
+# --- Modelos de Base de Datos (SQLAlchemy) ---
 
-# Historial de órdenes para simular el checkout
-orders = []
-order_id_counter = 1
+class Service(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    servicio = db.Column(db.String(200), nullable=False)
+    precio = db.Column(db.Integer, nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "servicio": self.servicio, "precio": self.precio}
+
+class CartItem(db.Model):
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), primary_key=True)
+    cantidad = db.Column(db.Integer, nullable=False, default=1)
+    
+    # Relación para acceder a los datos del servicio fácilmente
+    service = db.relationship('Service')
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    total = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(50), default="COMPLETED")
+
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    precio_unitario = db.Column(db.Integer, nullable=False)
+    cantidad = db.Column(db.Integer, nullable=False)
+    subtotal = db.Column(db.Integer, nullable=False)
+
+    service = db.relationship('Service')
+
+
+# --- Inicialización de Base de Datos ---
+def init_db():
+    with app.app_context():
+        db.create_all()
+        # Sembrar catálogo si está vacío
+        if Service.query.count() == 0:
+            initial_services = [
+                {"servicio": "Cambio de Pasta térmica y Mantenimiento PC Desktop", "precio": 29800},
+                {"servicio": "Instalación de Sistema Operativo (Windows/Linux) con Backup", "precio": 15000},
+                {"servicio": "Limpieza profunda de hardware (PC Desktop)", "precio": 22500},
+                {"servicio": "Diagnóstico de falla de encendido PC/Notebook", "precio": 12000},
+                {"servicio": "Desbloqueo y flasheo de Netbooks del Gobierno", "precio": 18000},
+                {"servicio": "Cambio de pantalla Notebook / Netbook", "precio": 35000},
+                {"servicio": "Mantenimiento preventivo Consolas (PS4, PS5, Xbox One/Series)", "precio": 32000},
+                {"servicio": "Reparación de Joystick (Drift, Botones, Batería)", "precio": 14000},
+                {"servicio": "Reballing de placa de video / Consolas", "precio": 55000},
+                {"servicio": "Cambio de módulo / Pantalla Celular", "precio": 45000},
+                {"servicio": "Cambio de pin de carga (Celulares y Tablets)", "precio": 16000},
+                {"servicio": "Cambio de batería celular", "precio": 20000},
+                {"servicio": "Armado de PC Gamer a medida (solo mano de obra)", "precio": 40000},
+                {"servicio": "Recuperación de datos de disco dañado (Nivel 1)", "precio": 50000},
+                {"servicio": "Optimización de sistema y eliminación de virus", "precio": 13500}
+            ]
+            for s in initial_services:
+                db.session.add(Service(servicio=s['servicio'], precio=s['precio']))
+            db.session.commit()
+
+# Llama a la inicialización antes del primer request si corremos la app
+init_db()
 
 # --- Endpoints ---
 
 @app.route('/', methods=['GET'])
 def index():
-    """
-    Lista de servicios disponibles en formato CSV.
-    ---
-    responses:
-      200:
-        description: Retorna el catálogo en formato texto plano CSV.
-    """
+    services = Service.query.all()
     csv_lines = ["id,servicio,precio"]
-    for s in services_catalog:
-        csv_lines.append(f"{s['id']},{s['servicio']},{s['precio']}")
+    for s in services:
+        csv_lines.append(f"{s.id},{s.servicio},{s.precio}")
     
     csv_data = "\n".join(csv_lines)
     return Response(csv_data, mimetype='text/plain')
 
 @app.route('/api/services', methods=['GET'])
 def get_services():
-    """
-    Retorna el catálogo completo de servicios en formato JSON.
-    ---
-    responses:
-      200:
-        description: Lista de servicios
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-                description: ID del servicio
-              servicio:
-                type: string
-                description: Nombre del servicio
-              precio:
-                type: integer
-                description: Precio del servicio
-    """
-    return jsonify(services_catalog), 200
+    services = Service.query.all()
+    return jsonify([s.to_dict() for s in services]), 200
 
 @app.route('/api/services', methods=['POST'])
 def add_service():
-    """
-    Permite agregar un nuevo servicio al catálogo.
-    ---
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            servicio:
-              type: string
-              description: Nombre o descripción del servicio
-            precio:
-              type: integer
-              description: Precio del servicio (no puede ser negativo)
-    responses:
-      201:
-        description: Servicio creado exitosamente
-      400:
-        description: Datos inválidos, faltantes, o precio negativo
-    """
-    global service_id_counter
-    
     data = request.get_json()
     
     if not data or 'servicio' not in data or 'precio' not in data:
@@ -127,46 +120,31 @@ def add_service():
     if precio < 0:
         return jsonify({"error": "El precio no puede ser negativo"}), 400
         
-    new_service = {
-        "id": service_id_counter,
-        "servicio": servicio,
-        "precio": precio
-    }
-    
-    services_catalog.append(new_service)
-    service_id_counter += 1
+    new_service = Service(servicio=servicio, precio=precio)
+    db.session.add(new_service)
+    db.session.commit()
     
     return jsonify({
         "message": "Servicio agregado al catálogo exitosamente",
-        "service": new_service
+        "service": new_service.to_dict()
     }), 201
 
 @app.route('/api/cart', methods=['GET'])
 def get_cart():
-    """
-    Retorna los items actuales en el carrito y el total calculado de la compra.
-    ---
-    responses:
-      200:
-        description: Estado del carrito y total de la compra
-    """
+    cart_items = CartItem.query.all()
     items_response = []
     total = 0
     
-    for service_id, cantidad in cart.items():
-        # Buscar el servicio en el catálogo para armar la respuesta
-        service = next((s for s in services_catalog if s["id"] == service_id), None)
-        if service:
-            subtotal = service["precio"] * cantidad
-            total += subtotal
-            
-            items_response.append({
-                "service_id": service["id"],
-                "servicio": service["servicio"],
-                "precio_unitario": service["precio"],
-                "cantidad": cantidad,
-                "subtotal": subtotal
-            })
+    for item in cart_items:
+        subtotal = item.service.precio * item.cantidad
+        total += subtotal
+        items_response.append({
+            "service_id": item.service.id,
+            "servicio": item.service.servicio,
+            "precio_unitario": item.service.precio,
+            "cantidad": item.cantidad,
+            "subtotal": subtotal
+        })
             
     return jsonify({
         "items": items_response,
@@ -175,28 +153,6 @@ def get_cart():
 
 @app.route('/api/cart', methods=['POST'])
 def add_to_cart():
-    """
-    Permite agregar un servicio al carrito o incrementar su cantidad si ya existe.
-    ---
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            service_id:
-              type: integer
-            cantidad:
-              type: integer
-    responses:
-      201:
-        description: Servicio agregado al carrito exitosamente
-      400:
-        description: Datos inválidos
-      404:
-        description: Servicio no encontrado
-    """
     data = request.get_json()
     
     if not data or 'service_id' not in data or 'cantidad' not in data:
@@ -208,47 +164,27 @@ def add_to_cart():
     if not isinstance(cantidad, int) or cantidad <= 0:
         return jsonify({"error": "La cantidad debe ser un entero positivo"}), 400
         
-    service_exists = any(s["id"] == service_id for s in services_catalog)
-    if not service_exists:
+    service = Service.query.get(service_id)
+    if not service:
         return jsonify({"error": f"El servicio con id {service_id} no existe en el catálogo"}), 404
         
-    if service_id in cart:
-        cart[service_id] += cantidad
+    cart_item = CartItem.query.filter_by(service_id=service_id).first()
+    if cart_item:
+        cart_item.cantidad += cantidad
     else:
-        cart[service_id] = cantidad
+        cart_item = CartItem(service_id=service_id, cantidad=cantidad)
+        db.session.add(cart_item)
+        
+    db.session.commit()
         
     return jsonify({
         "message": "Servicio agregado al carrito",
         "service_id": service_id,
-        "nueva_cantidad": cart[service_id]
+        "nueva_cantidad": cart_item.cantidad
     }), 201
 
 @app.route('/api/cart/<int:service_id>', methods=['PUT'])
 def update_cart_item(service_id):
-    """
-    Actualiza la cantidad exacta de un servicio en el carrito. Si es 0, lo elimina.
-    ---
-    parameters:
-      - name: service_id
-        in: path
-        type: integer
-        required: true
-      - name: body
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            cantidad:
-              type: integer
-    responses:
-      200:
-        description: Cantidad actualizada
-      400:
-        description: Datos inválidos
-      404:
-        description: Item no encontrado
-    """
     data = request.get_json()
     if not data or 'cantidad' not in data:
         return jsonify({"error": "Faltan datos requeridos (cantidad)"}), 400
@@ -257,109 +193,99 @@ def update_cart_item(service_id):
     if not isinstance(cantidad, int) or cantidad < 0:
         return jsonify({"error": "La cantidad debe ser un número entero positivo o 0"}), 400
         
-    if service_id not in cart:
+    cart_item = CartItem.query.filter_by(service_id=service_id).first()
+    if not cart_item:
         return jsonify({"error": f"El servicio con id {service_id} no está en el carrito"}), 404
         
     if cantidad == 0:
-        del cart[service_id]
+        db.session.delete(cart_item)
+        db.session.commit()
         return jsonify({"message": "Item eliminado del carrito por cantidad 0"}), 200
         
-    cart[service_id] = cantidad
+    cart_item.cantidad = cantidad
+    db.session.commit()
     return jsonify({"message": "Cantidad actualizada", "service_id": service_id, "nueva_cantidad": cantidad}), 200
 
 @app.route('/api/cart/<int:service_id>', methods=['DELETE'])
 def remove_from_cart(service_id):
-    """
-    Permite eliminar un servicio específico del carrito.
-    ---
-    parameters:
-      - name: service_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Item eliminado correctamente
-      404:
-        description: Item no encontrado
-    """
-    if service_id in cart:
-        del cart[service_id]
+    cart_item = CartItem.query.filter_by(service_id=service_id).first()
+    if cart_item:
+        db.session.delete(cart_item)
+        db.session.commit()
         return jsonify({"message": "Servicio eliminado del carrito correctamente"}), 200
     else:
         return jsonify({"error": f"El servicio con id {service_id} no existe en el carrito"}), 404
 
 @app.route('/api/cart', methods=['DELETE'])
 def clear_cart():
-    """
-    Vacia el carrito por completo sin procesar la compra.
-    ---
-    responses:
-      200:
-        description: Carrito vaciado
-    """
-    cart.clear()
+    CartItem.query.delete()
+    db.session.commit()
     return jsonify({"message": "Carrito vaciado por completo"}), 200
 
 @app.route('/api/checkout', methods=['POST'])
 def checkout():
-    """
-    Procesa el carrito actual, genera una orden de compra y vacía el carrito.
-    ---
-    responses:
-      201:
-        description: Orden creada exitosamente
-      400:
-        description: El carrito está vacío
-    """
-    global order_id_counter
-    if not cart:
+    cart_items = CartItem.query.all()
+    if not cart_items:
         return jsonify({"error": "El carrito está vacío, no se puede generar la orden"}), 400
         
     total = 0
     items_comprados = []
     
-    for service_id, cantidad in cart.items():
-        service = next((s for s in services_catalog if s["id"] == service_id), None)
-        if service:
-            subtotal = service["precio"] * cantidad
-            total += subtotal
-            items_comprados.append({
-                "service_id": service["id"],
-                "servicio": service["servicio"],
-                "precio_unitario": service["precio"],
-                "cantidad": cantidad,
-                "subtotal": subtotal
-            })
-            
-    order = {
-        "order_id": order_id_counter,
-        "items": items_comprados,
-        "total": total,
-        "status": "COMPLETED"
-    }
+    # Crear nueva orden
+    new_order = Order(total=0)
+    db.session.add(new_order)
+    db.session.flush() # Para obtener new_order.id
     
-    orders.append(order)
-    order_id_counter += 1
+    for item in cart_items:
+        subtotal = item.service.precio * item.cantidad
+        total += subtotal
+        
+        order_item = OrderItem(
+            order_id=new_order.id,
+            service_id=item.service.id,
+            precio_unitario=item.service.precio,
+            cantidad=item.cantidad,
+            subtotal=subtotal
+        )
+        db.session.add(order_item)
+        
+        items_comprados.append({
+            "service_id": item.service.id,
+            "servicio": item.service.servicio,
+            "precio_unitario": item.service.precio,
+            "cantidad": item.cantidad,
+            "subtotal": subtotal
+        })
+            
+    new_order.total = total
     
     # Vaciar carrito tras la compra
-    cart.clear()
+    CartItem.query.delete()
+    db.session.commit()
     
     return jsonify({
         "message": "Compra finalizada con éxito",
-        "order": order
+        "order": {
+            "order_id": new_order.id,
+            "items": items_comprados,
+            "total": total,
+            "status": new_order.status
+        }
     }), 201
 
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
-    """
-    Retorna el historial de órdenes de compra.
-    ---
-    responses:
-      200:
-        description: Historial de compras
-    """
-    return jsonify(orders), 200
+    orders = Order.query.all()
+    orders_data = []
+    for o in orders:
+        items = OrderItem.query.filter_by(order_id=o.id).all()
+        orders_data.append({
+            "order_id": o.id,
+            "total": o.total,
+            "status": o.status,
+            "items": [{"servicio": i.service.servicio, "cantidad": i.cantidad, "subtotal": i.subtotal} for i in items]
+        })
+    return jsonify(orders_data), 200
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

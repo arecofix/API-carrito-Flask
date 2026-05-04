@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Cart - Servicios Técnicos</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Panel Izquierdo: Catálogo -->
+        <main class="catalog-panel">
+            <header>
+                <h1>Servicios Técnicos</h1>
+                <p>Selecciona los servicios que deseas contratar.</p>
+            </header>
+            <div id="services-grid" class="grid">
+                <!-- Los servicios se cargarán aquí vía JS -->
+            </div>
+        </main>
+
+        <!-- Panel Derecho: Carrito -->
+        <aside class="cart-panel">
+            <header>
+                <h2>Tu Carrito</h2>
+                <button id="clear-cart-btn" class="btn btn-icon" title="Vaciar Carrito">🗑️</button>
+            </header>
+            <div id="cart-items" class="cart-items">
+                <!-- Los items del carrito se cargarán aquí -->
+            </div>
+            <div class="cart-summary">
+                <div class="total-row">
+                    <span>Total</span>
+                    <strong id="cart-total">$0</strong>
+                </div>
+                <button id="checkout-btn" class="btn btn-primary" disabled>Finalizar Compra</button>
+            </div>
+        </aside>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

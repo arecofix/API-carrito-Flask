@@ -26,9 +26,9 @@ def test_coffee_cart_e2e_flow(page: Page):
     # 2. Esperar que los servicios se rendericen (esperar a que el contenedor tenga elementos)
     page.wait_for_selector(".service-card")
     
-    # Contar los servicios renderizados (deberían ser 15)
+    # Contar los servicios renderizados (deberían ser 24)
     cards = page.locator(".service-card")
-    expect(cards).to_have_count(15)
+    expect(cards).to_have_count(24)
     
     # Vaciar el carrito previamente por si había algo de pruebas anteriores
     page.locator("#clear-cart-btn").click()
@@ -44,9 +44,9 @@ def test_coffee_cart_e2e_flow(page: Page):
     cart_items = page.locator(".cart-item")
     expect(cart_items).to_have_count(1)
     
-    # Verificar que el total se actualizó (29800 del primer servicio)
+    # Verificar que el total se actualizó (25000 del primer servicio)
     total_text = page.locator("#cart-total").inner_text()
-    assert "29.800" in total_text or "29800" in total_text.replace(".", "")
+    assert "25.000" in total_text or "25000" in total_text.replace(".", "")
     
     # 4. Incrementar cantidad (clic al botón de +)
     # Selecciona el botón '+' usando text='+' 
@@ -54,8 +54,8 @@ def test_coffee_cart_e2e_flow(page: Page):
     time.sleep(1) # Esperar a que la API actualice
     
     total_text = page.locator("#cart-total").inner_text()
-    # 29800 * 2 = 59600
-    assert "59.600" in total_text or "59600" in total_text.replace(".", "")
+    # 25000 * 2 = 50000
+    assert "50.000" in total_text or "50000" in total_text.replace(".", "")
     
     # 5. Eliminar el servicio (Vaciar carrito usando el tacho de basura general)
     page.locator("#clear-cart-btn").click()

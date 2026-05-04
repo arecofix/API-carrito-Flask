@@ -34,21 +34,30 @@ def create_app():
         # Sembrar catálogo si está vacío
         if Service.query.count() == 0:
             initial_services = [
-                {"servicio": "Cambio de Pasta térmica y Mantenimiento PC Desktop", "precio": 29800},
-                {"servicio": "Instalación de Sistema Operativo (Windows/Linux) con Backup", "precio": 15000},
-                {"servicio": "Limpieza profunda de hardware (PC Desktop)", "precio": 22500},
-                {"servicio": "Diagnóstico de falla de encendido PC/Notebook", "precio": 12000},
-                {"servicio": "Desbloqueo y flasheo de Netbooks del Gobierno", "precio": 18000},
-                {"servicio": "Cambio de pantalla Notebook / Netbook", "precio": 35000},
-                {"servicio": "Mantenimiento preventivo Consolas (PS4, PS5, Xbox One/Series)", "precio": 32000},
-                {"servicio": "Reparación de Joystick (Drift, Botones, Batería)", "precio": 14000},
-                {"servicio": "Reballing de placa de video / Consolas", "precio": 55000},
-                {"servicio": "Cambio de módulo / Pantalla Celular", "precio": 45000},
-                {"servicio": "Cambio de pin de carga (Celulares y Tablets)", "precio": 16000},
-                {"servicio": "Cambio de batería celular", "precio": 20000},
-                {"servicio": "Armado de PC Gamer a medida (solo mano de obra)", "precio": 40000},
-                {"servicio": "Recuperación de datos de disco dañado (Nivel 1)", "precio": 50000},
-                {"servicio": "Optimización de sistema y eliminación de virus", "precio": 13500}
+                {"servicio": "Mantenimiento Preventivo PC Desktop", "precio": 25000},
+                {"servicio": "Limpieza Profunda de Hardware y Pasta Térmica", "precio": 29800},
+                {"servicio": "Instalación de SO (Windows/Linux) con Backup", "precio": 18000},
+                {"servicio": "Diagnóstico de Falla de Encendido (PC/Notebook)", "precio": 12000},
+                {"servicio": "Armado de PC Gamer a Medida", "precio": 40000},
+                {"servicio": "Actualización de Componentes (RAM / SSD)", "precio": 15000},
+                {"servicio": "Desbloqueo de Netbooks Escolares", "precio": 18000},
+                {"servicio": "Cambio de Pantalla (Notebook/Netbook)", "precio": 35000},
+                {"servicio": "Cambio de Teclado (Notebook)", "precio": 22000},
+                {"servicio": "Reparación de Bisagras y Carcasa", "precio": 28000},
+                {"servicio": "Mantenimiento Consolas (PS4 / PS5)", "precio": 32000},
+                {"servicio": "Mantenimiento Consolas (Xbox One / Series)", "precio": 32000},
+                {"servicio": "Reparación de Joystick - Fix Drift", "precio": 14000},
+                {"servicio": "Reballing de Placa de Video", "precio": 65000},
+                {"servicio": "Micro-soldadura en Placa Madre (SMD)", "precio": 45000},
+                {"servicio": "Reparación de Fuente de Alimentación", "precio": 20000},
+                {"servicio": "Cambio de Módulo de Pantalla (Smartphone)", "precio": 45000},
+                {"servicio": "Cambio de Pin de Carga (Celular/Tablet)", "precio": 16000},
+                {"servicio": "Reemplazo de Batería Interna (Celular)", "precio": 22000},
+                {"servicio": "Recuperación de Datos (Borrado Accidental)", "precio": 30000},
+                {"servicio": "Recuperación de Datos de Disco Dañado", "precio": 55000},
+                {"servicio": "Eliminación de Virus y Optimización", "precio": 13500},
+                {"servicio": "Instalación de Software de Diseño/Arquitectura", "precio": 15000},
+                {"servicio": "Configuración de Redes y Routers WiFi", "precio": 18000}
             ]
             for s in initial_services:
                 db.session.add(Service(servicio=s['servicio'], precio=s['precio']))

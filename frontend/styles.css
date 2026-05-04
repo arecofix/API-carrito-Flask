@@ -1,13 +1,15 @@
 :root {
-    --bg-color: #121212;
-    --panel-bg: #1e1e1e;
-    --card-bg: #2d2d2d;
-    --text-main: #ffffff;
-    --text-muted: #a0a0a0;
-    --primary: #4a90e2;
-    --primary-hover: #357abd;
-    --danger: #e24a4a;
-    --border-color: #333333;
+    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    --panel-bg: rgba(30, 41, 59, 0.7);
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --blur: blur(16px);
 }
 
 * {
@@ -17,116 +19,202 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-color);
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-gradient);
     color: var(--text-main);
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* Background animated elements */
+body::before, body::after {
+    content: '';
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: -1;
+    animation: float 10s infinite alternate;
+}
+
+body::before {
+    background: rgba(59, 130, 246, 0.3);
+    top: -100px;
+    left: -100px;
+}
+
+body::after {
+    background: rgba(139, 92, 246, 0.3);
+    bottom: -100px;
+    right: -100px;
+    animation-delay: 5s;
+}
+
+@keyframes float {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(50px) scale(1.2); }
 }
 
 .app-container {
     display: flex;
-    width: 90%;
-    max-width: 1200px;
+    width: 95%;
+    max-width: 1400px;
     height: 90vh;
-    background-color: var(--panel-bg);
-    border-radius: 12px;
+    background: var(--panel-bg);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-radius: 24px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border-color);
 }
 
 header {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 header h1, header h2 {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 700;
+    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 header p {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     margin-top: 5px;
 }
 
 /* --- Panel Izquierdo (Catálogo) --- */
 .catalog-panel {
     flex: 2;
-    padding: 30px;
+    padding: 40px;
     overflow-y: auto;
     border-right: 1px solid var(--border-color);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 100%);
+}
+
+.catalog-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.catalog-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
 }
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
 }
 
 .service-card {
-    background-color: var(--card-bg);
-    padding: 20px;
-    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), #8b5cf6);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .service-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.service-card:hover::before {
+    opacity: 1;
 }
 
 .service-name {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 500;
+    line-height: 1.4;
     margin-bottom: 15px;
 }
 
 .service-price {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 15px;
+    color: #60a5fa;
+    margin-bottom: 20px;
 }
 
 .btn {
-    padding: 10px 15px;
+    padding: 12px 20px;
     border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .btn-primary {
-    background-color: var(--primary);
+    background: var(--primary);
     color: white;
     width: 100%;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover);
+    background: var(--primary-hover);
+    transform: scale(1.02);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
 }
 
 .btn-primary:disabled {
-    background-color: #555;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    box-shadow: none;
     cursor: not-allowed;
+    transform: none;
 }
 
 .btn-icon {
-    background: transparent;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
     font-size: 1.2rem;
+    padding: 10px;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+}
+
+.btn-icon:hover {
+    background: var(--danger);
+    color: white;
 }
 
 /* --- Panel Derecho (Carrito) --- */
@@ -134,64 +222,92 @@ header p {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 30px;
-    background-color: #1a1a1a;
+    padding: 40px;
+    background: rgba(0, 0, 0, 0.2);
+    min-width: 350px;
 }
 
 .cart-items {
     flex-grow: 1;
     overflow-y: auto;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    padding-right: 10px;
+}
+
+.cart-items::-webkit-scrollbar {
+    width: 6px;
+}
+
+.cart-items::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
 }
 
 .cart-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: var(--card-bg);
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 18px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.item-info {
+    flex: 1;
+    padding-right: 15px;
 }
 
 .item-info h4 {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 500;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    line-height: 1.3;
 }
 
 .item-info p {
-    color: var(--primary);
-    font-weight: 700;
-    font-size: 0.9rem;
+    color: #a78bfa;
+    font-weight: 600;
+    font-size: 1rem;
 }
 
 .item-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 5px;
+    border-radius: 8px;
 }
 
 .quantity-btn {
-    background-color: #444;
-    color: white;
+    background: transparent;
+    color: var(--text-main);
     border: none;
-    width: 25px;
-    height: 25px;
-    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
+    transition: background 0.2s;
+    font-size: 1rem;
 }
 
 .quantity-btn:hover {
-    background-color: #555;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .cart-summary {
-    background-color: var(--card-bg);
-    padding: 20px;
-    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    padding: 25px;
+    border-radius: 16px;
     border: 1px solid var(--border-color);
 }
 
@@ -199,12 +315,30 @@ header p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 1.2rem;
-    margin-bottom: 15px;
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: var(--text-muted);
+}
+
+.total-row strong {
+    font-size: 1.8rem;
+    color: white;
+    font-weight: 800;
 }
 
 .empty-cart-msg {
     text-align: center;
     color: var(--text-muted);
-    margin-top: 50px;
+    margin-top: 60px;
+    font-size: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.empty-cart-msg::before {
+    content: '🛒';
+    font-size: 3rem;
+    opacity: 0.5;
 }

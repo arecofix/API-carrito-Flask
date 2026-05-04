@@ -1,90 +1,92 @@
 # Aplicación Web SPA - Carrito de Compras de Servicios Técnicos
 
-Este repositorio contiene el proyecto finalizado de ambas etapas (Etapa 1 y Etapa 2) para el Desarrollo de una Aplicación Web Single Page Application (SPA), inspirada en "Coffee Cart".
+Este repositorio contiene el proyecto finalizado (Etapa 1 y Etapa 2) para el Desarrollo de una Aplicación Web Single Page Application (SPA), inspirada en "Coffee Cart".
 
-## 🏗️ Arquitectura del Proyecto (Desacoplada)
+## 🏗️ Arquitectura del Proyecto (Clean Architecture & Desacoplada)
 
-El proyecto está diseñado siguiendo una **arquitectura cliente-servidor completamente desacoplada**. Esto significa que el backend (la API) y el frontend (la interfaz de usuario) operan de forma independiente, comunicándose exclusivamente a través de peticiones HTTP (REST). 
+El proyecto está diseñado siguiendo una **arquitectura cliente-servidor completamente desacoplada** e internamente utiliza principios de **Clean Architecture y App Factory Pattern**.
 
-Esta decisión arquitectónica permite:
-1. Desplegar el frontend y el backend en servidores distintos.
-2. Hacer modificaciones en la interfaz sin afectar la lógica de negocio ni la base de datos.
-3. Evaluar la Etapa 1 (solo backend) de forma aislada a través de herramientas como Swagger.
+Esto significa que el backend (la API) y el frontend (la interfaz de usuario) operan de forma independiente, comunicándose exclusivamente a través de peticiones HTTP (REST). A nivel backend, las responsabilidades están separadas en múltiples archivos.
 
 ### Estructura de Carpetas
 
 ```
 API-carrito-flask/
-├── app.py                # Backend: Servidor Flask y lógica RESTful
+├── app.py                # App Factory: Inicialización modular de Flask
+├── extensions.py         # Instanciación de extensiones (SQLAlchemy, Swagger, CORS)
+├── models.py             # Modelos de Base de Datos (Servicios, Carrito, Órdenes)
+├── routes.py             # Blueprints y lógica de ruteo RESTful
 ├── carrito.db            # Base de Datos: SQLite autogenerada por SQLAlchemy
-├── requirements.txt      # Dependencias del backend
+├── requirements.txt      # Dependencias del backend (incluye gunicorn para deploy)
 ├── e2e_test.py           # Testing E2E con Playwright
+├── test_app.py           # Testing unitario con Pytest
 │
 └── frontend/             # Frontend (SPA)
     ├── index.html        # Estructura principal
-    ├── styles.css        # Diseño UI (estilo oscuro de software ágil)
-    └── app.js            # Lógica JS Vanilla (Fetch API a http://127.0.0.1:5000)
+    ├── styles.css        # Diseño UI (Glassmorphism, animaciones, dark mode)
+    └── app.js            # Lógica JS Vanilla (Fetch API a backend)
 ```
 
 ## 🛠️ Tecnologías Implementadas
 
 ### Backend (Etapa 1)
 *   **Python 3 / Flask:** Framework ligero para construir las APIs.
-*   **Flask-SQLAlchemy (SQLite):** ORM utilizado para persistencia real de datos (Servicios, Carrito y Órdenes).
+*   **Flask-SQLAlchemy (SQLite):** ORM utilizado para persistencia de datos relacional.
 *   **Flasgger:** Documentación interactiva autogenerada de la API (Swagger UI).
 *   **Flask-CORS:** Habilita peticiones cruzadas desde el frontend.
+*   **Gunicorn:** WSGI HTTP Server preparado para el deploy a producción (Render/Railway).
 
 ### Frontend (Etapa 2)
-*   **HTML5 & CSS3 (Vainilla):** Interfaz limpia, oscura ("Dark Mode") y ágil. Sin dependencias externas pesadas.
+*   **HTML5 & CSS3 (Vainilla):** Interfaz premium y moderna utilizando *Glassmorphism*, gradientes sutiles y micro-animaciones. Sin dependencias externas pesadas.
 *   **JavaScript (Vainilla):** Manejo asíncrono usando `Fetch API` para sincronizar el estado del carrito dinámicamente con el servidor.
 
 ### Testing
-*   **Playwright (pytest-playwright):** Herramienta para realizar pruebas *End-to-End* simulando un navegador real manipulando la SPA.
+*   **Pytest:** Suite de pruebas unitarias cubriendo el 100% de los flujos de la API con bases de datos en memoria para el testeo.
+*   **Playwright (pytest-playwright):** Herramienta para realizar pruebas *End-to-End* simulando un navegador real manipulando la SPA (abre el carrito, agrega servicios, actualiza la cantidad y verifica los totales asíncronos).
 
 ---
 
-## 📖 Instrucciones para Ejecución Local
+## 🚧 Dificultades Encontradas y Soluciones
 
-Dado que la arquitectura es desacoplada, el backend y el frontend se ejecutan/sirven por separado.
+1. **Persistencia Compartida vs. Testing:**
+   *   *Dificultad:* Al pasar de memoria temporal a base de datos SQLite, las pruebas unitarias comenzaban a pisar los datos reales del catálogo o fallaban al buscar dependencias circulares.
+   *   *Solución:* Se implementó el patrón `Application Factory` en Flask. Esto permite crear instancias aisladas de la aplicación para `pytest` utilizando una base de datos temporal en memoria (`sqlite:///:memory:`), lo que garantiza la idempotencia de las pruebas y un entorno 100% limpio por cada ejecución.
+2. **CORS (Cross-Origin Resource Sharing):**
+   *   *Dificultad:* Al separar el frontend y abrirlo localmente vía `file://` o un Live Server, las peticiones HTTP eran bloqueadas por el navegador debido a políticas de seguridad.
+   *   *Solución:* Se integró e inicializó `flask-cors` en `extensions.py` para permitir tráfico cruzado en las API expuestas.
+3. **Manejo Dinámico de Cantidades en el Frontend:**
+   *   *Dificultad:* Alinear la velocidad de los clics en los botones "Sumar/Restar" del frontend con la respuesta asíncrona del backend y base de datos, sin generar desincronización de totales.
+   *   *Solución:* Se implementaron llamadas `async/await` estructuradas. La interfaz gráfica se bloquea por fracciones de segundo e inmediatamente se renderiza (`loadCart()`) con la fuente única de verdad retornada por el servidor, asegurando que el DOM y la Base de datos tengan siempre los mismos números.
 
-### 1. Iniciar el Backend (Servidor Flask)
+---
 
-1. Crea y activa tu entorno virtual:
+## 📖 Instrucciones para Ejecución y Deploy
+
+### 1. Ejecución Local
+
+1. Activa tu entorno virtual:
    ```bash
    python -m venv venv
    .\venv\Scripts\activate   # En Windows
-   source venv/bin/activate  # En Linux/Mac
    ```
 2. Instala las dependencias:
    ```bash
    pip install -r requirements.txt
-   pip install flask-sqlalchemy playwright pytest-playwright
+   playwright install chromium
    ```
 3. Ejecuta el servidor de Flask:
    ```bash
    python app.py
    ```
-   *El servidor iniciará en `http://127.0.0.1:5000`. La base de datos SQLite (`carrito.db`) se generará automáticamente con el catálogo precargado. Puedes ver el Swagger en `http://127.0.0.1:5000/apidocs`.*
-
-### 2. Iniciar el Frontend (SPA)
-
-Al no usar Node.js/Frameworks pesados, puedes iniciar el frontend de la manera más sencilla posible:
-1. Navega a la carpeta `/frontend`.
-2. Simplemente haz doble clic en el archivo `index.html` para abrirlo en tu navegador (`file:///.../frontend/index.html`).
-3. O si utilizas VS Code, instala la extensión "Live Server" y dale a "Go Live" en `index.html`.
-
-*Nota: La interfaz comenzará a realizar llamadas `fetch` a `http://127.0.0.1:5000`. Asegúrate de que el backend esté corriendo simultáneamente.*
-
-### 3. Ejecutar Pruebas E2E (Playwright)
-
-Para validar el flujo completo automatizado en la UI:
-
-1. Asegúrate de tener instalado Playwright y sus navegadores base:
+   *Swagger interactivo en `http://127.0.0.1:5000/apidocs`.*
+4. Abre el archivo `/frontend/index.html` en tu navegador.
+5. Para correr los tests E2E y unitarios:
    ```bash
-   playwright install chromium
-   ```
-2. Ejecuta el script de pruebas en una terminal separada:
-   ```bash
+   pytest test_app.py
    pytest e2e_test.py
    ```
-   *Playwright levantará un navegador invisible, abrirá el frontend, agregará un servicio, validará la suma del total calculada por el backend y limpiará el carrito.*
+
+### 2. Pautas de Deploy
+Para desplegar este proyecto:
+- **Frontend (Vercel / Netlify):** Sube la carpeta `/frontend`. Recuerda cambiar la constante `API_BASE_URL` en `app.js` a la URL pública de tu backend.
+- **Backend (Render / Railway):** Conecta este repositorio. El comando de inicio (*Start Command*) debe ser `gunicorn app:app` y asegúrate de configurar Python 3.

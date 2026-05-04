@@ -1,14 +1,41 @@
 import pytest
 import json
-from app import app, cart, orders
+from app import create_app
+from extensions import db
+from models import CartItem, Order, OrderItem, Service
 
 @pytest.fixture
-def client():
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        cart.clear()
-        orders.clear()
-        yield client
+def app():
+    app = create_app()
+    app.config.update({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
+    })
+    
+    with app.app_context():
+        db.create_all()
+        # Sembrar catálogo inicial
+        initial_services = [
+            {"servicio": "Cambio de Pasta térmica y Mantenimiento PC Desktop", "precio": 29800},
+            {"servicio": "Instalación de Sistema Operativo (Windows/Linux) con Backup", "precio": 15000}
+        ]
+        for s in initial_services:
+            db.session.add(Service(servicio=s['servicio'], precio=s['precio']))
+        db.session.commit()
+        
+    yield app
+
+@pytest.fixture
+def client(app):
+    return app.test_client()
+
+@pytest.fixture(autouse=True)
+def clean_db(app):
+    with app.app_context():
+        CartItem.query.delete()
+        OrderItem.query.delete()
+        Order.query.delete()
+        db.session.commit()
 
 def test_index_csv(client):
     response = client.get('/')
@@ -19,7 +46,7 @@ def test_get_services(client):
     response = client.get('/api/services')
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert len(data) >= 15
+    assert len(data) >= 2
     assert data[0]['servicio'] == "Cambio de Pasta térmica y Mantenimiento PC Desktop"
 
 def test_add_service_success(client):

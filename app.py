@@ -8,16 +8,16 @@ def create_app():
     # Configuramos Flask para servir los archivos estáticos desde /frontend
     app = Flask(__name__, static_folder='frontend', static_url_path='')
     
-    # Configuración Base de Datos SQLite
+    # Configuración SQLite
     basedir = os.path.abspath(os.path.dirname(__file__))
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'carrito.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Configuración Swagger
-    app.config['SWAGGER'] = {
+    
+    app.config['Enrico'] = {
         'title': 'Carrito de Compras API',
         'uiversion': 3,
-        'validatorUrl': ''  # Evita el error "Uncaught ReferenceError: None is not defined"
+        'validatorUrl': ''
     }
     
     # Inicializar extensiones
@@ -25,13 +25,12 @@ def create_app():
     swagger.init_app(app)
     cors.init_app(app)
     
-    # Registrar rutas
     app.register_blueprint(api_bp)
     
-    # Inicialización de Base de Datos
+    # Base de Datos
     with app.app_context():
         db.create_all()
-        # Sembrar catálogo si está vacío
+        # Agregar servicios iniciales si la tabla está vacía
         if Service.query.count() == 0:
             initial_services = [
                 {"servicio": "Mantenimiento Preventivo PC Desktop", "precio": 25000},
@@ -63,12 +62,10 @@ def create_app():
                 db.session.add(Service(servicio=s['servicio'], precio=s['precio']))
             db.session.commit()
 
-    # Ruta raíz que sirve el Frontend SPA automáticamente
     @app.route('/')
     def serve_frontend():
         return app.send_static_file('index.html')
-
-    # Ignorar silenciosamente la petición del favicon para que no tire error 404
+    
     @app.route('/favicon.ico')
     def favicon():
         return '', 204

@@ -4,10 +4,7 @@ import os
 import threading
 import time
 
-# Asumiremos que el backend de flask ya está corriendo en http://127.0.0.1:5000 
-# o puedes iniciar un live server en la misma máquina.
-# También que el frontend se abre desde un live server o directamente el archivo HTML,
-# pero como hace llamadas fetch a 'http://127.0.0.1:5000', el html puede estar en file:///
+# backend de flask corriendo en http://127.0.0.1:5000 
 
 # Ruta al archivo HTML del frontend
 FRONTEND_URL = f"file://{os.path.abspath('frontend/index.html')}"

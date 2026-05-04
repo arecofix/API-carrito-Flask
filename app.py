@@ -34,9 +34,12 @@ services_catalog = [
 service_id_counter = 16
 
 # Carrito de compras
-# Formato: { item_id: {"service_id": id, "cantidad": cant} }
+# Formato: { service_id: cantidad }
 cart = {}
-cart_item_counter = 1
+
+# Historial de órdenes para simular el checkout
+orders = []
+order_id_counter = 1
 
 # --- Endpoints ---
 
@@ -146,46 +149,22 @@ def get_cart():
     responses:
       200:
         description: Estado del carrito y total de la compra
-        schema:
-          type: object
-          properties:
-            items:
-              type: array
-              items:
-                type: object
-                properties:
-                  item_id:
-                    type: integer
-                  service_id:
-                    type: integer
-                  servicio:
-                    type: string
-                  precio_unitario:
-                    type: integer
-                  cantidad:
-                    type: integer
-                  subtotal:
-                    type: integer
-            total:
-              type: integer
-              description: Precio total de la compra
     """
     items_response = []
     total = 0
     
-    for item_id, item_data in cart.items():
+    for service_id, cantidad in cart.items():
         # Buscar el servicio en el catálogo para armar la respuesta
-        service = next((s for s in services_catalog if s["id"] == item_data["service_id"]), None)
+        service = next((s for s in services_catalog if s["id"] == service_id), None)
         if service:
-            subtotal = service["precio"] * item_data["cantidad"]
+            subtotal = service["precio"] * cantidad
             total += subtotal
             
             items_response.append({
-                "item_id": item_id,
                 "service_id": service["id"],
                 "servicio": service["servicio"],
                 "precio_unitario": service["precio"],
-                "cantidad": item_data["cantidad"],
+                "cantidad": cantidad,
                 "subtotal": subtotal
             })
             
@@ -197,7 +176,7 @@ def get_cart():
 @app.route('/api/cart', methods=['POST'])
 def add_to_cart():
     """
-    Permite agregar un servicio al carrito.
+    Permite agregar un servicio al carrito o incrementar su cantidad si ya existe.
     ---
     parameters:
       - name: body
@@ -208,20 +187,16 @@ def add_to_cart():
           properties:
             service_id:
               type: integer
-              description: ID del servicio a agregar
             cantidad:
               type: integer
-              description: Cantidad del servicio
     responses:
       201:
         description: Servicio agregado al carrito exitosamente
       400:
-        description: Datos inválidos o faltantes
+        description: Datos inválidos
       404:
-        description: Servicio no encontrado en el catálogo
+        description: Servicio no encontrado
     """
-    global cart_item_counter
-    
     data = request.get_json()
     
     if not data or 'service_id' not in data or 'cantidad' not in data:
@@ -233,47 +208,158 @@ def add_to_cart():
     if not isinstance(cantidad, int) or cantidad <= 0:
         return jsonify({"error": "La cantidad debe ser un entero positivo"}), 400
         
-    # Verificar si el servicio existe en el catálogo
     service_exists = any(s["id"] == service_id for s in services_catalog)
     if not service_exists:
         return jsonify({"error": f"El servicio con id {service_id} no existe en el catálogo"}), 404
         
-    # Crear un nuevo ID de item para esta adición al carrito
-    item_id = cart_item_counter
-    cart[item_id] = {
-        "service_id": service_id,
-        "cantidad": cantidad
-    }
-    
-    cart_item_counter += 1
-    
+    if service_id in cart:
+        cart[service_id] += cantidad
+    else:
+        cart[service_id] = cantidad
+        
     return jsonify({
         "message": "Servicio agregado al carrito",
-        "item_id": item_id
+        "service_id": service_id,
+        "nueva_cantidad": cart[service_id]
     }), 201
 
-@app.route('/api/cart/<int:item_id>', methods=['DELETE'])
-def remove_from_cart(item_id):
+@app.route('/api/cart/<int:service_id>', methods=['PUT'])
+def update_cart_item(service_id):
+    """
+    Actualiza la cantidad exacta de un servicio en el carrito. Si es 0, lo elimina.
+    ---
+    parameters:
+      - name: service_id
+        in: path
+        type: integer
+        required: true
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            cantidad:
+              type: integer
+    responses:
+      200:
+        description: Cantidad actualizada
+      400:
+        description: Datos inválidos
+      404:
+        description: Item no encontrado
+    """
+    data = request.get_json()
+    if not data or 'cantidad' not in data:
+        return jsonify({"error": "Faltan datos requeridos (cantidad)"}), 400
+        
+    cantidad = data['cantidad']
+    if not isinstance(cantidad, int) or cantidad < 0:
+        return jsonify({"error": "La cantidad debe ser un número entero positivo o 0"}), 400
+        
+    if service_id not in cart:
+        return jsonify({"error": f"El servicio con id {service_id} no está en el carrito"}), 404
+        
+    if cantidad == 0:
+        del cart[service_id]
+        return jsonify({"message": "Item eliminado del carrito por cantidad 0"}), 200
+        
+    cart[service_id] = cantidad
+    return jsonify({"message": "Cantidad actualizada", "service_id": service_id, "nueva_cantidad": cantidad}), 200
+
+@app.route('/api/cart/<int:service_id>', methods=['DELETE'])
+def remove_from_cart(service_id):
     """
     Permite eliminar un servicio específico del carrito.
     ---
     parameters:
-      - name: item_id
+      - name: service_id
         in: path
         type: integer
         required: true
-        description: ID del item dentro del carrito
     responses:
       200:
         description: Item eliminado correctamente
       404:
-        description: Item no encontrado en el carrito
+        description: Item no encontrado
     """
-    if item_id in cart:
-        del cart[item_id]
-        return jsonify({"message": "Item eliminado del carrito correctamente"}), 200
+    if service_id in cart:
+        del cart[service_id]
+        return jsonify({"message": "Servicio eliminado del carrito correctamente"}), 200
     else:
-        return jsonify({"error": f"El item con id {item_id} no existe en el carrito"}), 404
+        return jsonify({"error": f"El servicio con id {service_id} no existe en el carrito"}), 404
+
+@app.route('/api/cart', methods=['DELETE'])
+def clear_cart():
+    """
+    Vacia el carrito por completo sin procesar la compra.
+    ---
+    responses:
+      200:
+        description: Carrito vaciado
+    """
+    cart.clear()
+    return jsonify({"message": "Carrito vaciado por completo"}), 200
+
+@app.route('/api/checkout', methods=['POST'])
+def checkout():
+    """
+    Procesa el carrito actual, genera una orden de compra y vacía el carrito.
+    ---
+    responses:
+      201:
+        description: Orden creada exitosamente
+      400:
+        description: El carrito está vacío
+    """
+    global order_id_counter
+    if not cart:
+        return jsonify({"error": "El carrito está vacío, no se puede generar la orden"}), 400
+        
+    total = 0
+    items_comprados = []
+    
+    for service_id, cantidad in cart.items():
+        service = next((s for s in services_catalog if s["id"] == service_id), None)
+        if service:
+            subtotal = service["precio"] * cantidad
+            total += subtotal
+            items_comprados.append({
+                "service_id": service["id"],
+                "servicio": service["servicio"],
+                "precio_unitario": service["precio"],
+                "cantidad": cantidad,
+                "subtotal": subtotal
+            })
+            
+    order = {
+        "order_id": order_id_counter,
+        "items": items_comprados,
+        "total": total,
+        "status": "COMPLETED"
+    }
+    
+    orders.append(order)
+    order_id_counter += 1
+    
+    # Vaciar carrito tras la compra
+    cart.clear()
+    
+    return jsonify({
+        "message": "Compra finalizada con éxito",
+        "order": order
+    }), 201
+
+@app.route('/api/orders', methods=['GET'])
+def get_orders():
+    """
+    Retorna el historial de órdenes de compra.
+    ---
+    responses:
+      200:
+        description: Historial de compras
+    """
+    return jsonify(orders), 200
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

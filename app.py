@@ -13,29 +13,25 @@ swagger = Swagger(app)
 
 # --- Datos en memoria (Persistencia) ---
 
-# Catálogo de servicios técnicos
+# Catálogo de servicios técnicos ampliados
 services_catalog = [
-    {
-        "id": 1,
-        "servicio": "Cambio de Pasta térmica y Mantenimiento",
-        "precio": 29800
-    },
-    {
-        "id": 2,
-        "servicio": "Instalación de Sistema Operativo (Windows/Linux)",
-        "precio": 15000
-    },
-    {
-        "id": 3,
-        "servicio": "Limpieza profunda de hardware (PC Desktop)",
-        "precio": 22500
-    },
-    {
-        "id": 4,
-        "servicio": "Diagnóstico de falla de encendido",
-        "precio": 12000
-    }
+    {"id": 1, "servicio": "Cambio de Pasta térmica y Mantenimiento PC Desktop", "precio": 29800},
+    {"id": 2, "servicio": "Instalación de Sistema Operativo (Windows/Linux) con Backup", "precio": 15000},
+    {"id": 3, "servicio": "Limpieza profunda de hardware (PC Desktop)", "precio": 22500},
+    {"id": 4, "servicio": "Diagnóstico de falla de encendido PC/Notebook", "precio": 12000},
+    {"id": 5, "servicio": "Desbloqueo y flasheo de Netbooks del Gobierno", "precio": 18000},
+    {"id": 6, "servicio": "Cambio de pantalla Notebook / Netbook", "precio": 35000},
+    {"id": 7, "servicio": "Mantenimiento preventivo Consolas (PS4, PS5, Xbox One/Series)", "precio": 32000},
+    {"id": 8, "servicio": "Reparación de Joystick (Drift, Botones, Batería)", "precio": 14000},
+    {"id": 9, "servicio": "Reballing de placa de video / Consolas", "precio": 55000},
+    {"id": 10, "servicio": "Cambio de módulo / Pantalla Celular", "precio": 45000},
+    {"id": 11, "servicio": "Cambio de pin de carga (Celulares y Tablets)", "precio": 16000},
+    {"id": 12, "servicio": "Cambio de batería celular", "precio": 20000},
+    {"id": 13, "servicio": "Armado de PC Gamer a medida (solo mano de obra)", "precio": 40000},
+    {"id": 14, "servicio": "Recuperación de datos de disco dañado (Nivel 1)", "precio": 50000},
+    {"id": 15, "servicio": "Optimización de sistema y eliminación de virus", "precio": 13500}
 ]
+service_id_counter = 16
 
 # Carrito de compras
 # Formato: { item_id: {"service_id": id, "cantidad": cant} }
@@ -84,6 +80,63 @@ def get_services():
                 description: Precio del servicio
     """
     return jsonify(services_catalog), 200
+
+@app.route('/api/services', methods=['POST'])
+def add_service():
+    """
+    Permite agregar un nuevo servicio al catálogo.
+    ---
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            servicio:
+              type: string
+              description: Nombre o descripción del servicio
+            precio:
+              type: integer
+              description: Precio del servicio (no puede ser negativo)
+    responses:
+      201:
+        description: Servicio creado exitosamente
+      400:
+        description: Datos inválidos, faltantes, o precio negativo
+    """
+    global service_id_counter
+    
+    data = request.get_json()
+    
+    if not data or 'servicio' not in data or 'precio' not in data:
+        return jsonify({"error": "Faltan datos requeridos (servicio, precio)"}), 400
+        
+    servicio = str(data['servicio']).strip()
+    precio = data['precio']
+    
+    if not servicio:
+        return jsonify({"error": "El nombre del servicio no puede estar vacío"}), 400
+        
+    if not isinstance(precio, (int, float)):
+        return jsonify({"error": "El precio debe ser un número válido"}), 400
+        
+    if precio < 0:
+        return jsonify({"error": "El precio no puede ser negativo"}), 400
+        
+    new_service = {
+        "id": service_id_counter,
+        "servicio": servicio,
+        "precio": precio
+    }
+    
+    services_catalog.append(new_service)
+    service_id_counter += 1
+    
+    return jsonify({
+        "message": "Servicio agregado al catálogo exitosamente",
+        "service": new_service
+    }), 201
 
 @app.route('/api/cart', methods=['GET'])
 def get_cart():

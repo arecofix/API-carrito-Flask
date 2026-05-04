@@ -18,7 +18,7 @@ def test_index_csv(client):
     
     data = response.data.decode('utf-8')
     assert "id,servicio,precio" in data
-    assert "1,Cambio de Pasta térmica y Mantenimiento,29800" in data
+    assert "1,Cambio de Pasta térmica y Mantenimiento PC Desktop,29800" in data
 
 def test_get_services(client):
     """Prueba que se lista el catálogo en formato JSON."""
@@ -28,7 +28,7 @@ def test_get_services(client):
     data = json.loads(response.data)
     assert isinstance(data, list)
     assert len(data) >= 4
-    assert data[0]['servicio'] == "Cambio de Pasta térmica y Mantenimiento"
+    assert data[0]['servicio'] == "Cambio de Pasta térmica y Mantenimiento PC Desktop"
 
 def test_add_to_cart_success(client):
     """Prueba que un servicio existente se puede agregar al carrito."""
@@ -98,3 +98,35 @@ def test_remove_from_cart_not_found(client):
     assert response.status_code == 404
     data = json.loads(response.data)
     assert "error" in data
+
+def test_add_service_success(client):
+    """Prueba que se puede agregar un nuevo servicio válido al catálogo."""
+    response = client.post('/api/services', json={
+        "servicio": "Cambio de disco HDD a SSD",
+        "precio": 25000
+    })
+    assert response.status_code == 201
+    data = json.loads(response.data)
+    assert data["message"] == "Servicio agregado al catálogo exitosamente"
+    assert data["service"]["id"] >= 16
+    assert data["service"]["servicio"] == "Cambio de disco HDD a SSD"
+
+def test_add_service_negative_price(client):
+    """Prueba que no se puede agregar un servicio con precio negativo."""
+    response = client.post('/api/services', json={
+        "servicio": "Servicio Invalido",
+        "precio": -500
+    })
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["error"] == "El precio no puede ser negativo"
+
+def test_add_service_empty_name(client):
+    """Prueba que no se puede agregar un servicio sin nombre."""
+    response = client.post('/api/services', json={
+        "servicio": "   ",
+        "precio": 5000
+    })
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["error"] == "El nombre del servicio no puede estar vacío"
